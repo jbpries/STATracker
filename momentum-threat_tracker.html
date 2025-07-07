@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Trek Adventures Player Screen</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom font for a Trek-like feel (FederationDS9Title) -->
+    <!-- Note: For a local font, ensure it's installed on the viewing system. -->
+    <!-- No Google Fonts link needed if using a locally installed font -->
+    <style>
+        /* Custom styles for LCARS theme and font */
+        body {
+            font-family: 'FederationDS9Title', sans-serif; /* Applied FederationDS9Title font */
+            background-color: #000; /* Deep space black, matching image */
+            color: #ADD8E6; /* LCARS light blue/cyan for text, matching image */
+            overflow: hidden; /* Prevent scrollbars */
+        }
+
+        .lcars-bg {
+            background-color: #1A1A1A; /* Very dark grey/black for main panel background */
+            border: 2px solid #FFCC00; /* LCARS yellow border, matching image */
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.5); /* Yellow glow */
+        }
+
+        .lcars-section-inner {
+            background-color: #2A2A2A; /* Slightly lighter dark grey for inner sections */
+            border-radius: 0.5rem; /* Rounded corners for inner sections */
+            padding: 1.5rem; /* Padding for inner sections */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative; /* Needed for absolute positioning of background image */
+            overflow: hidden; /* To contain background image */
+            transition: box-shadow 0.3s ease-in-out, background-color 0.3s ease-in-out; /* Added transition for hover effect */
+        }
+
+        /* Removed generic hover from .lcars-section-inner */
+        .lcars-section-inner:hover {
+            background-color: rgba(42, 42, 42, 0.8); /* Slightly less transparent on hover */
+        }
+
+        .lcars-section-inner.has-background {
+            /* To ensure content is readable over blurred background */
+            z-index: 1;
+            position: relative;
+            background-color: rgba(42, 42, 42, 0.6); /* Semi-transparent background for readability */
+            backdrop-filter: blur(5px); /* Modern glass effect */
+            -webkit-backdrop-filter: blur(5px); /* For Safari support */
+        }
+
+        .lcars-section-inner.has-background:hover {
+            background-color: rgba(42, 42, 42, 0.8); /* Maintain glass effect on hover */
+        }
+
+        /* Specific hover effects for Momentum and Threat boxes */
+        .lcars-momentum-box:hover {
+            box-shadow: 0 0 20px rgba(71, 98, 255, 0.7); /* Custom Blue glow on hover (4762ff) */
+        }
+
+        .lcars-threat-box:hover {
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7); /* Red Alert Red glow on hover */
+        }
+
+        .lcars-section-background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.3; /* Adjust opacity of the image itself */
+            z-index: -1; /* Place behind content */
+        }
+
+        .lcars-button {
+            background-color: #FF9900; /* LCARS orange for interactive elements, matching image */
+            color: #000; /* Black text on buttons */
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out; /* Keep transform for other buttons */
+            border-radius: 9999px; /* Fully rounded buttons */
+            padding: 0.75rem 1.5rem; /* Consistent padding */
+            font-size: 1.125rem; /* Larger font for buttons */
+        }
+
+        .lcars-button:hover {
+            background-color: #FFCC00; /* Lighter yellow on hover */
+            transform: translateY(-2px); /* Keep transform for other buttons */
+            /* Removed box-shadow for glass effect on buttons */
+        }
+
+        .lcars-button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .lcars-value {
+            font-size: 6rem; /* Large font for values */
+            text-shadow: 0 0 10px rgba(173, 216, 230, 0.7); /* Default blue glow for values */
+        }
+
+        /* Specific colors for Momentum and Threat values */
+        .lcars-momentum-value {
+            color: #4762ff; /* Custom color for Momentum value (4762ff) */
+        }
+
+        .lcars-threat-value {
+            color: #FF0000; /* Red Alert Red for Threat value */
+        }
+
+        .lcars-momentum-title {
+            color: #4762ff; /* Custom color for Momentum title (4762ff) */
+        }
+
+        .lcars-threat-title {
+            color: #FF0000; /* LCARS red for Threat title, matching image */
+        }
+
+        .lcars-reset-button {
+            background-color: #8A2BE2; /* LCARS purple for reset button, inspired by image */
+            color: #fff;
+            transition: background-color 0.2s ease-in-out; /* Only transition background-color */
+        }
+
+        .lcars-reset-button:hover {
+            background-color: #9932CC; /* Lighter purple on hover */
+            transform: none; /* Explicitly remove transform for reset button */
+            /* Removed box-shadow for glass effect on buttons */
+        }
+
+
+        /* Responsive font sizes */
+        .section-title {
+            font-size: 4rem; /* Increased from 3rem to 4rem */
+        }
+
+        @media (max-width: 768px) {
+            .lcars-value {
+                font-size: 4rem;
+            }
+            .lcars-button {
+                font-size: 0.9rem;
+                padding: 0.5rem 1rem;
+            }
+            .section-title {
+                font-size: 2.5rem; /* Adjusted for smaller screens */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .lcars-value {
+                font-size: 3rem;
+            }
+            .lcars-button {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .section-title {
+                font-size: 2rem; /* Adjusted for even smaller screens */
+            }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="lcars-bg rounded-lg p-8 w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Momentum Section -->
+        <div class="lcars-section-inner has-background lcars-momentum-box">
+            <!-- Background image container for Momentum -->
+            <div class="lcars-section-background-image" style="background-image: url('ufplogo.png');"></div>
+            <h2 class="section-title font-bold mb-6 lcars-momentum-title">MOMENTUM</h2>
+            <span id="momentumValue" class="lcars-value lcars-momentum-value mb-8">0</span>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button id="momentumUp1" class="lcars-button">+1</button>
+                <button id="momentumDown1" class="lcars-button">-1</button>
+                <button id="momentumUp5" class="lcars-button">+5</button>
+                <button id="momentumDown5" class="lcars-button">-5</button>
+            </div>
+        </div>
+
+        <!-- Threat Section -->
+        <div class="lcars-section-inner has-background lcars-threat-box">
+            <!-- Background image container for Threat -->
+            <div class="lcars-section-background-image" style="background-image: url('redalert.jpg');"></div>
+            <h2 class="section-title font-bold mb-6 lcars-threat-title">THREAT</h2>
+            <span id="threatValue" class="lcars-value lcars-threat-value mb-8">0</span>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button id="threatUp1" class="lcars-button">+1</button>
+                <button id="threatDown1" class="lcars-button">-1</button>
+                <button id="threatUp5" class="lcars-button">+5</button>
+                <button id="threatDown5" class="lcars-button">-5</button>
+            </div>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="md:col-span-2 flex justify-center mt-8">
+            <button id="resetAll" class="lcars-button lcars-reset-button px-8 py-4 text-xl">RESET ALL</button>
+        </div>
+    </div>
+
+    <script>
+        // Get references to the display elements
+        const momentumValueElement = document.getElementById('momentumValue');
+        const threatValueElement = document.getElementById('threatValue');
+
+        // Get references to all buttons
+        const momentumUp1 = document.getElementById('momentumUp1');
+        const momentumDown1 = document.getElementById('momentumDown1');
+        const momentumUp5 = document.getElementById('momentumUp5');
+        const momentumDown5 = document.getElementById('momentumDown5');
+
+        const threatUp1 = document.getElementById('threatUp1');
+        const threatDown1 = document.getElementById('threatDown1');
+        const threatUp5 = document.getElementById('threatUp5');
+        const threatDown5 = document.getElementById('threatDown5');
+
+        const resetAllButton = document.getElementById('resetAll');
+
+        // Initialize values
+        let momentum = 0;
+        let threat = 0;
+
+        // Function to update Momentum display
+        function updateMomentumDisplay() {
+            momentumValueElement.textContent = momentum;
+        }
+
+        // Function to update Threat display
+        function updateThreatDisplay() {
+            threatValueElement.textContent = threat;
+        }
+
+        // --- Event Listeners for Momentum Buttons ---
+        momentumUp1.addEventListener('click', () => {
+            momentum += 1;
+            updateMomentumDisplay();
+        });
+
+        momentumDown1.addEventListener('click', () => {
+            momentum = Math.max(0, momentum - 1); // Ensure momentum doesn't go below 0
+            updateMomentumDisplay();
+        });
+
+        momentumUp5.addEventListener('click', () => {
+            momentum += 5;
+            updateMomentumDisplay();
+        });
+
+        momentumDown5.addEventListener('click', () => {
+            momentum = Math.max(0, momentum - 5); // Ensure momentum doesn't go below 0
+            updateMomentumDisplay();
+        });
+
+        // --- Event Listeners for Threat Buttons ---
+        threatUp1.addEventListener('click', () => {
+            threat += 1;
+            updateThreatDisplay();
+        });
+
+        threatDown1.addEventListener('click', () => {
+            threat = Math.max(0, threat - 1); // Ensure threat doesn't go below 0
+            updateThreatDisplay();
+        });
+
+        threatUp5.addEventListener('click', () => {
+            threat += 5;
+            updateThreatDisplay();
+        });
+
+        threatDown5.addEventListener('click', () => {
+            threat = Math.max(0, threat - 5); // Ensure threat doesn't go below 0
+            updateThreatDisplay();
+        });
+
+        // --- Event Listener for Reset Button ---
+        resetAllButton.addEventListener('click', () => {
+            momentum = 0;
+            threat = 0;
+            updateMomentumDisplay();
+            updateThreatDisplay();
+        });
+
+        // Initial display update when the page loads
+        updateMomentumDisplay();
+        updateThreatDisplay();
+    </script>
+</body>
+</html>
