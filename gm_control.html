@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Trek Adventures GM Control</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom font for a Trek-like feel (Edge of the Galaxy Regular) -->
+    <!-- Note: For a local font, ensure it's installed on the viewing system. -->
+    <style>
+        /* Custom styles for LCARS theme and font */
+        body {
+            font-family: 'Edge of the Galaxy Regular', sans-serif; /* Applied new font */
+            background-color: #000; /* Deep space black */
+            color: #ADD8E6; /* LCARS light blue/cyan */
+            overflow: hidden; /* Prevent scrollbars */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .lcars-bg {
+            background-color: #1A1A1A; /* Very dark grey/black for main panel background */
+            border: 2px solid #FFCC00; /* LCARS yellow border */
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.5); /* Yellow glow */
+            max-width: 600px; /* Constrain width for GM page */
+            width: 100%;
+        }
+
+        .lcars-section-inner {
+            background-color: #2A2A2A; /* Slightly lighter dark grey for inner sections */
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem; /* Space between sections */
+        }
+
+        .lcars-button {
+            background-color: #FF9900; /* LCARS orange for interactive elements */
+            color: #000;
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            border-radius: 9999px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1.125rem;
+        }
+
+        .lcars-button:hover {
+            background-color: #FFCC00;
+            transform: translateY(-2px);
+        }
+
+        .lcars-button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .lcars-input {
+            background-color: #0A0A0A; /* Dark input background */
+            color: #FFFFFF; /* Changed to white for better readability */
+            border: 1px solid #FFCC00;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-size: 1.5rem;
+            text-align: center;
+            width: 100px; /* Fixed width for number inputs */
+        }
+
+        .lcars-textarea {
+            background-color: #0A0A0A; /* Dark input background */
+            color: #FFFFFF; /* Changed to white for better readability */
+            border: 1px solid #FFCC00;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            width: 100%;
+            min-height: 100px;
+            resize: vertical; /* Allow vertical resizing */
+        }
+
+        .lcars-momentum-title {
+            color: #4762ff; /* Custom blue for Momentum title */
+        }
+
+        .lcars-threat-title {
+            color: #FF0000; /* LCARS red for Threat title */
+        }
+
+        .lcars-traits-title {
+            color: #00FF00; /* Green for Traits, common LCARS color */
+        }
+
+        .lcars-reset-button {
+            background-color: #8A2BE2; /* LCARS purple for reset button */
+            color: #fff;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .lcars-reset-button:hover {
+            background-color: #9932CC;
+            transform: none;
+        }
+
+        .section-title {
+            font-size: 2.75rem; /* Slightly increased font size */
+            letter-spacing: 0.1em; /* Added letter spacing */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .section-title {
+                font-size: 2.2rem; /* Adjusted for smaller screens */
+                letter-spacing: 0.08em;
+            }
+            .lcars-input {
+                font-size: 1.25rem;
+                width: 80px;
+            }
+            .lcars-button {
+                font-size: 0.9rem;
+                padding: 0.5rem 1rem;
+            }
+            .lcars-textarea {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Your actual Firebase project configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBE16aAA1MGegVb3THBM_8v01UeERL1f7s",
+            authDomain: "star-trek-sta-display.firebaseapp.com",
+            projectId: "star-trek-sta-display",
+            storageBucket: "star-trek-sta-display.firebasestorage.app",
+            messagingSenderId: "385324543794",
+            appId: "1:385324543794:web:cb8902fc9e72929239312b",
+            measurementId: "G-DEB5M12RPG"
+        };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Reference to the Firestore document where game state is stored
+        // Using a public collection path as per instructions
+        const gameStateRef = doc(db, `artifacts/${appId}/public/data/game_state`, "current_values");
+
+        let userId = null; // To store the authenticated user ID
+
+        // Authenticate user
+        onAuthStateChanged(auth, async (user) => {
+            const userIdDisplay = document.getElementById('userIdDisplay');
+            if (user) {
+                userId = user.uid;
+                userIdDisplay.textContent = userId; // Display user ID
+                console.log("Authenticated with Firebase. User ID:", userId);
+                // Listen for real-time updates to display current values
+                onSnapshot(gameStateRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        document.getElementById('momentumInput').value = data.momentum || 0;
+                        document.getElementById('threatInput').value = data.threat || 0;
+                        document.getElementById('traitsInput').value = data.traits || ''; // Update traits input
+                        console.log("GM page received update:", data);
+                    } else {
+                        console.log("No game state document found. Initializing with 0.");
+                        // Initialize if document doesn't exist
+                        setDoc(gameStateRef, { momentum: 0, threat: 0, traits: '' }); // Initialize traits
+                    }
+                }, (error) => {
+                    console.error("Error listening to game state:", error);
+                    userIdDisplay.textContent = "Data Error!"; // Indicate data error
+                });
+            } else {
+                // User is signed out or not yet authenticated
+                userIdDisplay.textContent = "Authenticating..."; // Indicate attempt
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthNToken);
+                    } else {
+                        // Ensure Anonymous Authentication is enabled in your Firebase project:
+                        // Firebase Console -> Build -> Authentication -> Get started -> Anonymous
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase authentication failed:", error);
+                    userIdDisplay.textContent = "Auth Failed!"; // Show failure
+                }
+            }
+        });
+
+        // Function to update Firestore
+        async function updateGameState(newMomentum, newThreat, newTraits) {
+            if (!userId) {
+                console.error("User not authenticated. Cannot update game state.");
+                return;
+            }
+            try {
+                await setDoc(gameStateRef, {
+                    momentum: newMomentum,
+                    threat: newThreat,
+                    traits: newTraits // Include traits in the update
+                });
+                console.log("Game state updated successfully!");
+            } catch (error) {
+                console.error("Error updating game state:", error);
+            }
+        }
+
+        // Event listeners for buttons and input fields
+        document.addEventListener('DOMContentLoaded', () => {
+            const momentumInput = document.getElementById('momentumInput');
+            const threatInput = document.getElementById('threatInput');
+            const traitsInput = document.getElementById('traitsInput'); // Get traits input
+
+            // Helper function to safely parse integer
+            const getIntValue = (element) => parseInt(element.value) || 0;
+
+            // Momentum buttons
+            document.getElementById('momentumUp1').addEventListener('click', () => {
+                momentumInput.value = getIntValue(momentumInput) + 1;
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            document.getElementById('momentumDown1').addEventListener('click', () => {
+                momentumInput.value = Math.max(0, getIntValue(momentumInput) - 1);
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            document.getElementById('momentumUp5').addEventListener('click', () => {
+                momentumInput.value = getIntValue(momentumInput) + 5;
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            document.getElementById('momentumDown5').addEventListener('click', () => {
+                momentumInput.value = Math.max(0, getIntValue(momentumInput) - 5);
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+
+            // Threat buttons
+            document.getElementById('threatUp1').addEventListener('click', () => {
+                threatInput.value = getIntValue(threatInput) + 1;
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            document.getElementById('threatDown1').addEventListener('click', () => {
+                threatInput.value = Math.max(0, getIntValue(threatInput) - 1);
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            document.getElementById('threatUp5').addEventListener('click', () => {
+                threatInput.value = getIntValue(threatInput) + 5;
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            document.getElementById('threatDown5').addEventListener('click', () => {
+                threatInput.value = Math.max(0, getIntValue(threatInput) - 5);
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+
+            // Reset All button
+            document.getElementById('resetAll').addEventListener('click', () => {
+                momentumInput.value = 0;
+                threatInput.value = 0;
+                traitsInput.value = ''; // Reset traits as well
+                updateGameState(0, 0, '');
+            });
+
+            // Update on manual input change (e.g., typing a number or text)
+            momentumInput.addEventListener('change', () => {
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            threatInput.addEventListener('change', () => {
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+            traitsInput.addEventListener('change', () => { // Listen for changes in traits input
+                updateGameState(getIntValue(momentumInput), getIntValue(threatInput), traitsInput.value);
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="lcars-bg rounded-lg p-8 w-full">
+        <h1 class="section-title text-center text-yellow-400 mb-8">GM CONTROL PANEL</h1>
+
+        <!-- Momentum Section -->
+        <div class="lcars-section-inner">
+            <h2 class="section-title font-bold mb-4 lcars-momentum-title">MOMENTUM</h2>
+            <input type="number" id="momentumInput" class="lcars-input mb-6" value="0" min="0">
+            <div class="flex flex-wrap justify-center gap-4">
+                <button id="momentumUp1" class="lcars-button">+1</button>
+                <button id="momentumDown1" class="lcars-button">-1</button>
+                <button id="momentumUp5" class="lcars-button">+5</button>
+                <button id="momentumDown5" class="lcars-button">-5</button>
+            </div>
+        </div>
+
+        <!-- Threat Section -->
+        <div class="lcars-section-inner">
+            <h2 class="section-title font-bold mb-4 lcars-threat-title">THREAT</h2>
+            <input type="number" id="threatInput" class="lcars-input mb-6" value="0" min="0">
+            <div class="flex flex-wrap justify-center gap-4">
+                <button id="threatUp1" class="lcars-button">+1</button>
+                <button id="threatDown1" class="lcars-button">-1</button>
+                <button id="threatUp5" class="lcars-button">+5</button>
+                <button id="threatDown5" class="lcars-button">-5</button>
+            </div>
+        </div>
+
+        <!-- Traits Section -->
+        <div class="lcars-section-inner">
+            <h2 class="section-title font-bold mb-4 lcars-traits-title">TRAITS</h2>
+            <textarea id="traitsInput" class="lcars-textarea mb-6" placeholder="Enter current scene or environmental traits here..."></textarea>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="flex justify-center mt-6">
+            <button id="resetAll" class="lcars-button lcars-reset-button px-8 py-4 text-xl">RESET ALL</button>
+        </div>
+        <div class="mt-8 text-center text-sm text-gray-500">
+            User ID: <span id="userIdDisplay">Loading...</span>
+        </div>
+    </div>
+</body>
+</html>
